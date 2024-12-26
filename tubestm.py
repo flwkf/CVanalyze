@@ -4,9 +4,10 @@ from spacy.cli import download
 from PyPDF2 import PdfReader
 import streamlit as st
 
+
 class CVAnalyzer:
     def __init__(self, required_skills):
-        self.nlp = spacy.load("en_core_web_sm")
+        # Try loading the spaCy model, download if not available
         try:
             self.nlp = spacy.load("en_core_web_sm")
         except OSError:
@@ -14,8 +15,6 @@ class CVAnalyzer:
             self.nlp = spacy.load("en_core_web_sm")
         self.required_skills = set(required_skills)
 
-    def extract_text_from_pdf(self, pdf_path):
-        reader = PdfReader(pdf_path)
     def extract_text_from_pdf(self, pdf_file):
         reader = PdfReader(pdf_file)
         text = ""
@@ -26,6 +25,7 @@ class CVAnalyzer:
     def analyze_cv(self, cv_text):
         doc = self.nlp(cv_text)
 
+        # Matcher for required skills
         matcher = Matcher(self.nlp.vocab)
         for skill in self.required_skills:
             pattern = [{"LOWER": token.lower()} for token in skill.split()]
@@ -34,20 +34,23 @@ class CVAnalyzer:
         matches = matcher(doc)
         matched_skills = {self.nlp.vocab.strings[match_id] for match_id, start, end in matches}
 
+        # Extract skills using POS tagging
         pos_identified_skills = set()
         for token in doc:
             if token.pos_ in {"NOUN", "PROPN"} and token.text in self.required_skills:
                 pos_identified_skills.add(token.text)
 
+        # Extract skills using Named Entity Recognition (NER)
         ner_identified_skills = set()
         for ent in doc.ents:
             if ent.label_ in {"ORG", "PRODUCT", "WORK_OF_ART", "SKILL"} and ent.text in self.required_skills:
                 ner_identified_skills.add(ent.text)
 
+        # Combine all identified skills
         all_identified_skills = matched_skills.union(pos_identified_skills, ner_identified_skills)
 
+        # Calculate missing skills and similarity percentage
         missing_skills = self.required_skills - all_identified_skills
-
         similarity_percentage = (len(all_identified_skills) / len(self.required_skills)) * 100
 
         return {
@@ -57,10 +60,11 @@ class CVAnalyzer:
             "similarity_percentage": similarity_percentage
         }
 
+
 # Streamlit Application
 st.title("CV Skill Analyzer")
 
-# Upload file
+# Upload CV file
 uploaded_file = st.file_uploader("Upload your CV (PDF format only)", type="pdf")
 
 # Input required skills
