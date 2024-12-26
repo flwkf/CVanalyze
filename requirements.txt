@@ -1,0 +1,5 @@
+streamlit
+spacy
+Matcher
+streamlit
+PyPDF2
