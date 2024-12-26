@@ -1,15 +1,20 @@
 import spacy
 from spacy.matcher import Matcher
+from spacy.cli import download
 from PyPDF2 import PdfReader
 import streamlit as st
 
 class CVAnalyzer:
     def __init__(self, required_skills):
-        self.nlp = spacy.load("en_core_web_sm")
+        try:
+            self.nlp = spacy.load("en_core_web_sm")
+        except OSError:
+            download("en_core_web_sm")
+            self.nlp = spacy.load("en_core_web_sm")
         self.required_skills = set(required_skills)
 
-    def extract_text_from_pdf(self, pdf_path):
-        reader = PdfReader(pdf_path)
+    def extract_text_from_pdf(self, pdf_file):
+        reader = PdfReader(pdf_file)
         text = ""
         for page in reader.pages:
             text += page.extract_text()
